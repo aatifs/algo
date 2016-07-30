@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: False
   vars:
-    instance_type: t2.nano
+    instance_type: t2.micro
     security_group: vpn-secgroup
     regions:
       "1":  "us-east-1"
@@ -43,9 +43,9 @@
         region: "{{ regions[region] }}"
       register: ec2_enis
 
-    - name: Locate Ubuntu 14.04 AMI for region.
+    - name: Locate official Ubuntu 16.04 AMI for region.
       ec2_ami_find:
-        name: "ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"
+        name: "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"
         owner:  099720109477
         sort: name
         sort_order: descending
@@ -73,15 +73,23 @@
         name: "{{ security_group }}"
         description: Security group for VPN servers
         region: "{{ regions[region] }}"
+
         rules:
-          - proto: tcp
-            from_port: 443
-            to_port: 443
+          - proto: udp
+            from_port: 500
+            to_port: 500
             cidr_ip: 0.0.0.0/0
+
+          - proto: udp
+            from_port: 4500
+            to_port: 4500
+            cidr_ip: 0.0.0.0/0
+
           - proto: tcp
             from_port: 22
             to_port: 22
             cidr_ip: "{{ ipify_public_ip }}/32"
+
         rules_egress:
           - proto: all
             from_port: 0-65535
@@ -103,17 +111,14 @@
       register: ec2
 
     - name: Add new instance to host group
-      add_host: hostname={{ item.public_ip }} groupname=vpn-host
+      add_host: hostname={{ item.public_ip }} groupname=vpn-host remote_user=ubuntu ansible_python_interpreter="/usr/bin/python2.7"
       with_items: "{{ ec2.instances }}"
 
     - name: Wait for SSH to come up
-      wait_for: host={{ item.public_dns_name }} port=22 delay=60 timeout=320 state=started
+      wait_for: host={{ item.public_dns_name }} port=22 delay=30 timeout=320 state=started
       with_items: "{{ ec2.instances }}"
 
     - name: accept new ssh fingerprints
       shell: ssh-keyscan -H {{ item.public_ip }} >> ~/.ssh/known_hosts
       with_items: "{{ ec2.instances }}"
-
-- include: common.yml
-    #- include: vpn.yml
 
