@@ -2,4 +2,5 @@
 127.0.0.1 ansible_connection=local
 
 [vpn-host]
-45.55.244.205 ansible_python_interpreter=/usr/bin/python2.7
+52.53.183.135
+#45.55.244.205 ansible_python_interpreter=/usr/bin/python2.7

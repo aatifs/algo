@@ -1,8 +1,10 @@
+# vim:ft=ansible:
 ---
 
 - name: Common tools
   hosts: vpn-host
-  remote_user: root
+  become: true
+  remote_user: ubuntu
   vars_files:
     - config.cfg    
   
@@ -10,15 +12,17 @@
   - name: Wait for port 22 to become available
     local_action: "wait_for port=22 host={{ inventory_hostname }}"
 
-  - name: Updating apt-get
-    raw: apt-get update -qq
-    
-  - name: Install python2.7 for Ansible
-    raw: apt-get install -qq -y python2.7
-    
+    #  - name: Updating apt-get
+    #    become: true
+    #    command: apt-get update
+
+  - name: Update apt cache and packages
+    apt: update_cache=yes upgrade=yes
+
   - name: Install tools
     apt: name="{{ item }}" state=latest
     with_items:
+      - python2.7
       - git
       - screen
       - apparmor-utils
